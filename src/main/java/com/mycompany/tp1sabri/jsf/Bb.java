@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import com.mycompany.tp1sabri.llm.JsonUtilPourGemini;
+import com.mycompany.tp1sabri.llm.Llminteraction;
+import com.mycompany.tp1sabri.llm.RequeteException;
+
 @Named
 @ViewScoped
 public class Bb implements Serializable {
@@ -29,12 +33,12 @@ public class Bb implements Serializable {
     @Inject
     private FacesContext facesContext;
 
+    @Inject
+    private JsonUtilPourGemini jsonUtil;
+
     public Bb() {}
 
-    public String getRoleSysteme() {
-        return roleSysteme;
-    }
-
+  
     public void setRoleSysteme(String roleSysteme) {
         this.roleSysteme = roleSysteme;
     }
@@ -82,6 +86,9 @@ public class Bb implements Serializable {
     public void setTexteRequeteJson(String texteRequeteJson) {
         this.texteRequeteJson = texteRequeteJson;
     }
+public String getRoleSysteme() {
+    return roleSysteme;
+}
 
     public String getTexteReponseJson() {
         return texteReponseJson;
@@ -95,19 +102,34 @@ public class Bb implements Serializable {
         this.setDebug(!isDebug());
     }
 
+    // --- Main methods ---
     public String envoyer() {
         if (question == null || question.isBlank()) {
-            FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR,
-                    "Texte question vide", "Il manque le texte de la question");
-            facesContext.addMessage(null, message);
+            facesContext.addMessage(null,
+                new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                                 "Texte question vide",
+                                 "Il manque le texte de la question"));
             return null;
         }
-        this.reponse = "||";
+
+        // Send system role if first question
         if (this.conversation.isEmpty()) {
-            this.reponse += roleSysteme.toUpperCase(Locale.FRENCH) + "\n";
+            jsonUtil.setSystemRole(roleSysteme);
             this.roleSystemeChangeable = false;
         }
-        this.reponse += question.toLowerCase(Locale.FRENCH) + "||";
+
+        try {
+            Llminteraction interaction = jsonUtil.envoyerRequete(question);
+            this.reponse = interaction.reponseJson();
+            this.texteRequeteJson = interaction.questionJson();
+            this.texteReponseJson = interaction.reponseExtraite();
+        } catch (Exception e) {
+            facesContext.addMessage(null,
+                new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                                 "Problème de connexion avec l'API du LLM",
+                                 "Problème de connexion avec l'API du LLM : " + e.getMessage()));
+        }
+
         afficherConversation();
         return null;
     }
@@ -117,31 +139,34 @@ public class Bb implements Serializable {
     }
 
     private void afficherConversation() {
-        this.conversation.append("== User:\n").append(question).append("\n== Serveur:\n").append(reponse).append("\n");
+        this.conversation.append("== User:\n").append(question)
+                         .append("\n== Serveur:\n").append(reponse).append("\n");
     }
 
+    // --- Roles systeme ---
     public List<SelectItem> getRolesSysteme() {
         if (this.listeRolesSysteme == null) {
             this.listeRolesSysteme = new ArrayList<>();
+
             String role = """
-                    You are a helpful assistant. You help the user to find the information they need.
-                    If the user type a question, you answer it.
-                    """;
+                You are a helpful assistant. You help the user to find the information they need.
+                If the user type a question, you answer it.
+                """;
             this.listeRolesSysteme.add(new SelectItem(role, "Assistant"));
 
             role = """
-                    You are an interpreter. You translate from English to French and from French to English.
-                    If the user type a French text, you translate it into English.
-                    If the user type an English text, you translate it into French.
-                    If the text contains only one to three words, give some examples of usage of these words in English.
-                    """;
+                You are an interpreter. You translate from English to French and from French to English.
+                If the user type a French text, you translate it into English.
+                If the user type an English text, you translate it into French.
+                If the text contains only one to three words, give some examples of usage of these words in English.
+                """;
             this.listeRolesSysteme.add(new SelectItem(role, "Traducteur Anglais-Français"));
 
             role = """
-                    Your are a travel guide. If the user type the name of a country or of a town,
-                    you tell them what are the main places to visit in the country or the town
-                    are you tell them the average price of a meal.
-                    """;
+                Your are a travel guide. If the user type the name of a country or of a town,
+                you tell them what are the main places to visit in the country or the town
+                are you tell them the average price of a meal.
+                """;
             this.listeRolesSysteme.add(new SelectItem(role, "Guide touristique"));
         }
 
