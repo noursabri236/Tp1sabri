@@ -161,13 +161,19 @@ public String getRoleSysteme() {
                 If the text contains only one to three words, give some examples of usage of these words in English.
                 """;
             this.listeRolesSysteme.add(new SelectItem(role, "Traducteur Anglais-Français"));
-
+            
             role = """
                 Your are a travel guide. If the user type the name of a country or of a town,
                 you tell them what are the main places to visit in the country or the town
                 are you tell them the average price of a meal.
                 """;
             this.listeRolesSysteme.add(new SelectItem(role, "Guide touristique"));
+            
+            role = """
+            Coach motivationnel : Réponds toujours de manière motivante et encourageante.
+            Encourage l’utilisateur, donne des conseils pratiques et inspire-le à persévérer.
+            """;
+            this.listeRolesSysteme.add(new SelectItem(role, "Coach motivationnel"));
         }
 
         return this.listeRolesSysteme;

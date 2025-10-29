@@ -11,7 +11,6 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
-import com.mycompany.tp1sabri.llm.Llminteraction;
 /**
  * Classe pour gérer le JSON des requêtes à l'API de Gemini.
  * Contient l'état JSON de la conversation et des méthodes pour manipuler le JSON.
